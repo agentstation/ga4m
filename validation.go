@@ -26,7 +26,7 @@ func validateEventName(name string) error {
 	return nil
 }
 
-func validateParams(params map[string]interface{}) error {
+func validateParams(params map[string]string) error {
 	if len(params) > maxEventParams {
 		return fmt.Errorf("events can have a maximum of %d parameters", maxEventParams)
 	}

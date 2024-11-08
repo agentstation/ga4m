@@ -27,9 +27,9 @@ const (
 
 // EventParams represents parameters for a GA4 event.
 type EventParams struct {
-	Name            string                 `json:"name"`
-	Params          map[string]interface{} `json:"params,omitempty"`
-	TimestampMicros int64                  `json:"timestamp_micros,omitempty"`
+	Name            string            `json:"name"`
+	Params          map[string]string `json:"params,omitempty"`
+	TimestampMicros int64             `json:"timestamp_micros,omitempty"`
 }
 
 // AnalyticsEvent represents the payload structure for GA4 events.
@@ -41,7 +41,11 @@ type AnalyticsEvent struct {
 }
 
 // SendEvent sends a single event to Google Analytics.
-func (c *AnalyticsClient) SendEvent(clientID, eventName string, params map[string]interface{}, opts ...SendEventOption) error {
+func (c *AnalyticsClient) SendEvent(session Session, eventName string, params map[string]string, opts ...SendEventOption) error {
+	if session.ClientID == "" {
+		return fmt.Errorf("session must have a valid client ID")
+	}
+
 	if err := validateEventName(eventName); err != nil {
 		return fmt.Errorf("invalid event name: %w", err)
 	}
@@ -56,12 +60,17 @@ func (c *AnalyticsClient) SendEvent(clientID, eventName string, params map[strin
 		opt(options)
 	}
 
+	// Use session ID from session if not explicitly provided in options
+	if options.sessionID == "" && session.SessionID != "" {
+		options.sessionID = session.SessionID
+	}
+
 	// Initialize params if nil.
 	if params == nil {
-		params = make(map[string]interface{})
+		params = make(map[string]string)
 	} else {
 		// Create a copy of the params map to avoid modifying the original
-		paramsCopy := make(map[string]interface{}, len(params))
+		paramsCopy := make(map[string]string, len(params))
 		for k, v := range params {
 			paramsCopy[k] = v
 		}
@@ -88,7 +97,7 @@ func (c *AnalyticsClient) SendEvent(clientID, eventName string, params map[strin
 	}
 
 	payload := AnalyticsEvent{
-		ClientID: clientID,
+		ClientID: session.ClientID,
 		Events:   []EventParams{event},
 	}
 
@@ -104,9 +113,14 @@ func (c *AnalyticsClient) SendEvent(clientID, eventName string, params map[strin
 }
 
 // SendEvents sends multiple events in a single batch request to Google Analytics.
-func (c *AnalyticsClient) SendEvents(clientID string, events []EventParams, opts ...SendEventOption) error {
+func (c *AnalyticsClient) SendEvents(session Session, events []EventParams, opts ...SendEventOption) error {
 	if len(events) > MaxEventsPerRequest {
 		return fmt.Errorf("requests can have a maximum of %d events", MaxEventsPerRequest)
+	}
+
+	// Validate client ID from session
+	if session.ClientID == "" {
+		return fmt.Errorf("session must have a valid client ID")
 	}
 
 	for _, event := range events {
@@ -118,16 +132,21 @@ func (c *AnalyticsClient) SendEvents(clientID string, events []EventParams, opts
 		}
 	}
 
-	// Apply default options.
+	// Apply default options
 	options := defaultSendEventOptions()
 	for _, opt := range opts {
 		opt(options)
 	}
 
-	// Add required session parameters to each event if not present.
+	// Use session ID from session if not explicitly provided in options
+	if options.sessionID == "" && session.SessionID != "" {
+		options.sessionID = session.SessionID
+	}
+
+	// Add required session parameters to each event if not present
 	for i := range events {
 		if events[i].Params == nil {
-			events[i].Params = make(map[string]interface{})
+			events[i].Params = make(map[string]string)
 		}
 		if options.sessionID != "" {
 			if _, ok := events[i].Params[SessionIDParam]; !ok {
@@ -144,7 +163,7 @@ func (c *AnalyticsClient) SendEvents(clientID string, events []EventParams, opts
 	}
 
 	payload := AnalyticsEvent{
-		ClientID: clientID,
+		ClientID: session.ClientID,
 		Events:   events,
 	}
 

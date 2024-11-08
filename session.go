@@ -1,16 +1,19 @@
 package ga4m
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/labstack/echo/v4"
 )
 
 const (
-	ClientCookieName  = "_ga"
-	SessionCookieName = "_ga_"
+	// ContextKey is the key middleware uses to store the Google Analytics session in the echo context
+	ContextKey        = "ga4m.session"
+	clientCookieName  = "_ga"
+	sessionCookieName = "_ga_"
 )
 
 // EmptySession is an empty Google Analytics session
@@ -18,15 +21,20 @@ var EmptySession = Session{}
 
 // Session represents the Google Analytics session tracking data for a user.
 type Session struct {
-	ClientID     string    // The client ID from _ga cookie.
-	FirstVisit   time.Time // First visit timestamp.
-	SessionCount int       // Number of sessions.
-	LastSession  time.Time // Last session timestamp.
-}
+	// Client Cookie Data
+	ClientID      string    // The client ID from _ga cookie.
+	ClientVersion string    // The version from _ga cookie (e.g., "1")
+	FirstVisit    time.Time // First visit timestamp.
 
-// LastSessionID returns the Unix timestamp of the last session as a string, this can be used as a session ID.
-func (s Session) LastSessionID() string {
-	return fmt.Sprintf("%d", s.LastSession.Unix())
+	// Session Cookie Data
+	SessionCount   int       // Number of sessions.
+	LastSession    time.Time // Last session timestamp.
+	SessionID      string    // Unique identifier for the current session
+	SessionVersion string    // The version from _ga_* cookie (e.g., "1")
+	IsEngaged      bool      // Indicates if the user is actively engaged
+	HitCount       int       // Number of hits/interactions in the current session
+	IsFirstSession bool      // Indicates if this is the user's first session
+	IsNewSession   bool      // Indicates if this is a new session
 }
 
 // ParseSessionFromRequest parses the Google Analytics cookies from an HTTP request and returns a Session.
@@ -34,13 +42,13 @@ func ParseSessionFromRequest(r *http.Request) Session {
 	var clientCookieValue, sessionCookieValue string
 
 	// Get _ga cookie.
-	if cookie, err := r.Cookie(ClientCookieName); err == nil {
+	if cookie, err := r.Cookie(clientCookieName); err == nil {
 		clientCookieValue = cookie.Value
 	}
 
 	// Get _ga_* session cookie.
 	for _, cookie := range r.Cookies() {
-		if strings.HasPrefix(cookie.Name, SessionCookieName) {
+		if strings.HasPrefix(cookie.Name, sessionCookieName) {
 			sessionCookieValue = cookie.Value
 			break
 		}
@@ -50,24 +58,97 @@ func ParseSessionFromRequest(r *http.Request) Session {
 	return parseGoogleAnalyticsCookies(clientCookieValue, sessionCookieValue)
 }
 
-func parseGoogleAnalyticsCookies(clientCookieValue, sessionCookieValue string) Session {
+// ParseSessionFromEchoContext returns the Google Analytics tracking data from an echo.Context
+func ParseSessionFromEchoContext(e echo.Context) Session {
+	return ParseSessionFromRequest(e.Request())
+}
+
+// parseGoogleAnalyticsCookies parses Google Analytics cookies and returns the client ID, first visit timestamp, session count, and last session timestamp
+func parseGoogleAnalyticsCookies(client, session string) Session {
 	var data Session
 
-	// Parse GA client cookie (e.g., GA1.1.71807069.1731019235).
-	if parts := strings.Split(clientCookieValue, "."); len(parts) >= 4 {
-		data.ClientID = parts[2] + "." + parts[3]
-		if ts, err := strconv.ParseInt(parts[3], 10, 64); err == nil {
-			data.FirstVisit = time.Unix(ts, 0)
+	// Handle empty inputs gracefully
+	if client == "" && session == "" {
+		return data
+	}
+
+	// Parse GA client cookie (GA1.1.476555468.1726969270)
+	// Format: GA1.{version}.{clientID}.{timestamp}
+	if client != "" {
+		parts := strings.Split(client, ".")
+		if len(parts) >= 4 && strings.HasPrefix(parts[0], "GA") {
+			// Client Version - with bounds checking
+			if len(parts) > 1 && parts[1] != "" {
+				data.ClientVersion = parts[1]
+			}
+
+			// Client ID - ensure both parts exist and aren't empty
+			lastIdx := len(parts) - 1
+			secondLastIdx := lastIdx - 1
+			if secondLastIdx >= 0 && parts[secondLastIdx] != "" &&
+				lastIdx >= 0 && parts[lastIdx] != "" {
+				data.ClientID = parts[secondLastIdx] + "." + parts[lastIdx]
+			}
+
+			// First Visit - validate reasonable range
+			if lastIdx >= 0 {
+				if ts, err := strconv.ParseInt(parts[lastIdx], 10, 64); err == nil {
+					now := time.Now().Unix()
+					if ts > 0 && ts <= now {
+						data.FirstVisit = time.Unix(ts, 0)
+					}
+				}
+			}
 		}
 	}
 
-	// Parse GA session cookie (e.g., GS1.1.1731019235.1.1.1731019762.0.0.0).
-	if parts := strings.Split(sessionCookieValue, "."); len(parts) >= 7 {
-		if count, err := strconv.Atoi(parts[3]); err == nil {
-			data.SessionCount = count
-		}
-		if ts, err := strconv.ParseInt(parts[5], 10, 64); err == nil {
-			data.LastSession = time.Unix(ts, 0)
+	// Parse GA session cookie (GS1.1.1731019235.1.1.1731019762.0.0.0)
+	// Format: GS1.1.{sessionID}.{sessionCount}.{sessionEngagement}.{timestamp}.{hitCount}.{isFirst}.{isNewSession}
+	if session != "" {
+		parts := strings.Split(session, ".")
+		if len(parts) >= 9 && strings.HasPrefix(parts[0], "GS") {
+			// Session Version
+			if len(parts) > 1 && parts[1] != "" {
+				data.SessionVersion = parts[1]
+			}
+
+			// Session ID - ensure not empty
+			if parts[2] != "" {
+				data.SessionID = parts[2]
+			}
+
+			// Session count - validate non-negative
+			if count, err := strconv.Atoi(parts[3]); err == nil && count >= 0 {
+				data.SessionCount = count
+			}
+
+			// Session engagement (0 or 1)
+			if engagement, err := strconv.Atoi(parts[4]); err == nil {
+				data.IsEngaged = engagement == 1
+			}
+
+			// Timestamp of last activity - validate reasonable range
+			if ts, err := strconv.ParseInt(parts[5], 10, 64); err == nil {
+				now := time.Now().Unix()
+				if ts > 0 && ts <= now {
+					data.LastSession = time.Unix(ts, 0)
+				}
+			}
+
+			// Hit count - validate non-negative
+			if hits, err := strconv.Atoi(parts[6]); err == nil && hits >= 0 {
+				data.HitCount = hits
+			}
+
+			// Is first session (0 or 1)
+			if isFirst, err := strconv.Atoi(parts[7]); err == nil {
+				data.IsFirstSession = isFirst == 1
+			}
+
+			// Is new session (0 or 1)
+			if isNew, err := strconv.Atoi(parts[8]); err == nil {
+				data.IsNewSession = isNew == 1
+			}
 		}
 	}
 
@@ -79,7 +160,6 @@ func LatestSessions(sessions ...Session) Session {
 	if len(sessions) == 0 {
 		return EmptySession
 	}
-
 	latest := sessions[0]
 	for _, session := range sessions[1:] {
 		if session.LastSession.After(latest.LastSession) {
