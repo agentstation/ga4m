@@ -16,7 +16,7 @@ const (
 type Session struct {
 	ClientID     string    // The client ID from _ga cookie.
 	FirstVisit   time.Time // First visit timestamp.
-	SessionCount int32     // Number of sessions.
+	SessionCount int       // Number of sessions.
 	LastSession  time.Time // Last session timestamp.
 }
 
@@ -54,8 +54,8 @@ func parseGoogleAnalyticsCookies(clientCookieValue, sessionCookieValue string) S
 
 	// Parse GA session cookie (e.g., GS1.1.1731019235.1.1.1731019762.0.0.0).
 	if parts := strings.Split(sessionCookieValue, "."); len(parts) >= 7 {
-		if count, err := strconv.ParseInt(parts[3], 10, 32); err == nil {
-			data.SessionCount = int32(count)
+		if count, err := strconv.Atoi(parts[3]); err == nil {
+			data.SessionCount = count
 		}
 		if ts, err := strconv.ParseInt(parts[5], 10, 64); err == nil {
 			data.LastSession = time.Unix(ts, 0)
