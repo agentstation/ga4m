@@ -1,7 +1,6 @@
 package ega4m
 
 import (
-	"github.com/agentstation/ga4m"
 	"github.com/labstack/echo/v4"
 )
 
@@ -13,9 +12,7 @@ const ContextKey = "ga4m.session"
 func GoogleAnalyticsCookieMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if session := ParseSessionFromContext(c); session != ga4m.EmptySession {
-				c.Set(ContextKey, session)
-			}
+			c.Set(ContextKey, ParseSessionFromContext(c))
 			return next(c)
 		}
 	}
