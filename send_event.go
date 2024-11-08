@@ -8,6 +8,23 @@ import (
 	"net/http"
 )
 
+const (
+	// DefaultEngagementTimeMS is the default engagement time in milliseconds
+	DefaultEngagementTimeMS = "100"
+	// SessionIDParam is the parameter name for the session ID
+	SessionIDParam = "session_id"
+	// EngagementTimeParam is the parameter name for the engagement time in milliseconds
+	EngagementTimeParam = "engagement_time_msec"
+	// MaxEventsPerRequest is the maximum number of events per request
+	MaxEventsPerRequest = 25
+	// URLFormat is the format for the URL
+	URLFormat = "%s?measurement_id=%s&api_secret=%s"
+	// ContentTypeHeader is the header for the content type
+	ContentTypeHeader = "Content-Type"
+	// ContentTypeJSON is the content type for JSON
+	ContentTypeJSON = "application/json"
+)
+
 // EventParams represents parameters for a GA4 event.
 type EventParams struct {
 	Name            string                 `json:"name"`
@@ -53,12 +70,12 @@ func (c *AnalyticsClient) SendEvent(clientID, eventName string, params map[strin
 
 	// Add required session parameters if not present.
 	if options.sessionID != "" {
-		if _, ok := params["session_id"]; !ok {
-			params["session_id"] = options.sessionID
+		if _, ok := params[SessionIDParam]; !ok {
+			params[SessionIDParam] = options.sessionID
 		}
 	}
-	if _, ok := params["engagement_time_msec"]; !ok {
-		params["engagement_time_msec"] = "100" // Default engagement time.
+	if _, ok := params[EngagementTimeParam]; !ok {
+		params[EngagementTimeParam] = DefaultEngagementTimeMS
 	}
 
 	event := EventParams{
@@ -88,8 +105,8 @@ func (c *AnalyticsClient) SendEvent(clientID, eventName string, params map[strin
 
 // SendEvents sends multiple events in a single batch request to Google Analytics.
 func (c *AnalyticsClient) SendEvents(clientID string, events []EventParams, opts ...SendEventOption) error {
-	if len(events) > 25 {
-		return fmt.Errorf("requests can have a maximum of 25 events")
+	if len(events) > MaxEventsPerRequest {
+		return fmt.Errorf("requests can have a maximum of %d events", MaxEventsPerRequest)
 	}
 
 	for _, event := range events {
@@ -113,12 +130,12 @@ func (c *AnalyticsClient) SendEvents(clientID string, events []EventParams, opts
 			events[i].Params = make(map[string]interface{})
 		}
 		if options.sessionID != "" {
-			if _, ok := events[i].Params["session_id"]; !ok {
-				events[i].Params["session_id"] = options.sessionID
+			if _, ok := events[i].Params[SessionIDParam]; !ok {
+				events[i].Params[SessionIDParam] = options.sessionID
 			}
 		}
-		if _, ok := events[i].Params["engagement_time_msec"]; !ok {
-			events[i].Params["engagement_time_msec"] = "100"
+		if _, ok := events[i].Params[EngagementTimeParam]; !ok {
+			events[i].Params[EngagementTimeParam] = DefaultEngagementTimeMS
 		}
 
 		if !options.timestamp.IsZero() && events[i].TimestampMicros == 0 {
@@ -154,13 +171,13 @@ func (c *AnalyticsClient) sendPayload(payload AnalyticsEvent, options *sendEvent
 		endpoint = c.DebugEndpoint
 	}
 
-	url := fmt.Sprintf("%s?measurement_id=%s&api_secret=%s", endpoint, c.MeasurementID, c.APISecret)
+	url := fmt.Sprintf(URLFormat, endpoint, c.MeasurementID, c.APISecret)
 
 	req, err := http.NewRequestWithContext(options.ctx, "POST", url, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(ContentTypeHeader, ContentTypeJSON)
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {

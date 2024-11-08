@@ -12,6 +12,9 @@ const (
 	SessionCookieName = "_ga_"
 )
 
+// EmptySession is an empty Google Analytics session
+var EmptySession = Session{}
+
 // Session represents the Google Analytics session tracking data for a user.
 type Session struct {
 	ClientID     string    // The client ID from _ga cookie.
@@ -63,4 +66,19 @@ func parseGoogleAnalyticsCookies(clientCookieValue, sessionCookieValue string) S
 	}
 
 	return data
+}
+
+// LatestSessions compares Google Analytics sessions and returns the latest one
+func LatestSessions(sessions ...Session) Session {
+	if len(sessions) == 0 {
+		return EmptySession
+	}
+
+	latest := sessions[0]
+	for _, session := range sessions[1:] {
+		if session.LastSession.After(latest.LastSession) {
+			latest = session
+		}
+	}
+	return latest
 }
