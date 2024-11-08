@@ -1,6 +1,7 @@
 package ga4m
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -21,6 +22,11 @@ type Session struct {
 	FirstVisit   time.Time // First visit timestamp.
 	SessionCount int       // Number of sessions.
 	LastSession  time.Time // Last session timestamp.
+}
+
+// LastSessionID returns the Unix timestamp of the last session as a string, this can be used as a session ID.
+func (s Session) LastSessionID() string {
+	return fmt.Sprintf("%d", s.LastSession.Unix())
 }
 
 // ParseSessionFromRequest parses the Google Analytics cookies from an HTTP request and returns a Session.
