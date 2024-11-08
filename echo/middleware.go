@@ -8,9 +8,9 @@ import (
 // ContextKey is the key middleware uses to store the Google Analytics session in the echo context
 const ContextKey = "ga4m.session"
 
-// GA4M middleware extracts user Google Analytics
+// GoogleAnalyticsCookieMiddleware extracts user Google Analytics
 // session data from cookies and stores it in the context for later use
-func GA4M() echo.MiddlewareFunc {
+func GoogleAnalyticsCookieMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			if session := ParseSessionFromContext(c); session != ga4m.EmptySession {
