@@ -97,16 +97,22 @@ import "github.com/agentstation/ga4m"
 const (
     // DefaultEngagementTimeMS is the default engagement time in milliseconds
     DefaultEngagementTimeMS = "100"
+
     // SessionIDParam is the parameter name for the session ID
     SessionIDParam = "session_id"
+
     // EngagementTimeParam is the parameter name for the engagement time in milliseconds
     EngagementTimeParam = "engagement_time_msec"
+
     // MaxEventsPerRequest is the maximum number of events per request
     MaxEventsPerRequest = 25
+
     // URLFormat is the format for the URL
     URLFormat = "%s?measurement_id=%s&api_secret=%s"
+
     // ContentTypeHeader is the header for the content type
     ContentTypeHeader = "Content-Type"
+
     // ContentTypeJSON is the content type for JSON
     ContentTypeJSON = "application/json"
 )
@@ -130,7 +136,7 @@ var EmptySession = Session{}
 ```
 
 <a name="GoogleAnalyticsCookieEchoMiddleware"></a>
-## func [GoogleAnalyticsCookieEchoMiddleware](<https://github.com/agentstation/ga4m/blob/master/middleware.go#L9>)
+## func [GoogleAnalyticsCookieEchoMiddleware](<https://github.com/agentstation/ga4m/blob/master/middleware.go#L7>)
 
 ```go
 func GoogleAnalyticsCookieEchoMiddleware() echo.MiddlewareFunc
@@ -163,7 +169,7 @@ func NewClient(measurementID, apiSecret string) *AnalyticsClient
 NewClient creates a new AnalyticsClient with the provided measurement ID and API secret
 
 <a name="AnalyticsClient.SendEvent"></a>
-### func \(\*AnalyticsClient\) [SendEvent](<https://github.com/agentstation/ga4m/blob/master/send_event.go#L44>)
+### func \(\*AnalyticsClient\) [SendEvent](<https://github.com/agentstation/ga4m/blob/master/send_event.go#L50>)
 
 ```go
 func (c *AnalyticsClient) SendEvent(session Session, eventName string, params map[string]string, opts ...SendEventOption) error
@@ -172,7 +178,7 @@ func (c *AnalyticsClient) SendEvent(session Session, eventName string, params ma
 SendEvent sends a single event to Google Analytics.
 
 <a name="AnalyticsClient.SendEvents"></a>
-### func \(\*AnalyticsClient\) [SendEvents](<https://github.com/agentstation/ga4m/blob/master/send_event.go#L116>)
+### func \(\*AnalyticsClient\) [SendEvents](<https://github.com/agentstation/ga4m/blob/master/send_event.go#L122>)
 
 ```go
 func (c *AnalyticsClient) SendEvents(session Session, events []EventParams, opts ...SendEventOption) error
@@ -190,7 +196,7 @@ func (c *AnalyticsClient) SetHTTPClient(client HTTPClient)
 SetHTTPClient allows setting a custom HTTP client
 
 <a name="AnalyticsEvent"></a>
-## type [AnalyticsEvent](<https://github.com/agentstation/ga4m/blob/master/send_event.go#L36-L41>)
+## type [AnalyticsEvent](<https://github.com/agentstation/ga4m/blob/master/send_event.go#L42-L47>)
 
 AnalyticsEvent represents the payload structure for GA4 events.
 
@@ -204,7 +210,7 @@ type AnalyticsEvent struct {
 ```
 
 <a name="EventParams"></a>
-## type [EventParams](<https://github.com/agentstation/ga4m/blob/master/send_event.go#L29-L33>)
+## type [EventParams](<https://github.com/agentstation/ga4m/blob/master/send_event.go#L35-L39>)
 
 EventParams represents parameters for a GA4 event.
 
@@ -282,7 +288,7 @@ func WithUserID(userID string) SendEventOption
 WithUserID sets the user ID for the event.
 
 <a name="Session"></a>
-## type [Session](<https://github.com/agentstation/ga4m/blob/master/session.go#L23-L38>)
+## type [Session](<https://github.com/agentstation/ga4m/blob/master/session.go#L25-L40>)
 
 Session represents the Google Analytics session tracking data for a user.
 
@@ -306,7 +312,7 @@ type Session struct {
 ```
 
 <a name="LatestSessions"></a>
-### func [LatestSessions](<https://github.com/agentstation/ga4m/blob/master/session.go#L159>)
+### func [LatestSessions](<https://github.com/agentstation/ga4m/blob/master/session.go#L161>)
 
 ```go
 func LatestSessions(sessions ...Session) Session
@@ -315,7 +321,7 @@ func LatestSessions(sessions ...Session) Session
 LatestSessions compares Google Analytics sessions and returns the latest one
 
 <a name="ParseSessionFromEchoContext"></a>
-### func [ParseSessionFromEchoContext](<https://github.com/agentstation/ga4m/blob/master/session.go#L62>)
+### func [ParseSessionFromEchoContext](<https://github.com/agentstation/ga4m/blob/master/session.go#L64>)
 
 ```go
 func ParseSessionFromEchoContext(e echo.Context) Session
@@ -324,7 +330,7 @@ func ParseSessionFromEchoContext(e echo.Context) Session
 ParseSessionFromEchoContext returns the Google Analytics tracking data from an echo.Context
 
 <a name="ParseSessionFromRequest"></a>
-### func [ParseSessionFromRequest](<https://github.com/agentstation/ga4m/blob/master/session.go#L41>)
+### func [ParseSessionFromRequest](<https://github.com/agentstation/ga4m/blob/master/session.go#L43>)
 
 ```go
 func ParseSessionFromRequest(r *http.Request) Session

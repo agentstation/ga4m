@@ -11,7 +11,9 @@ import (
 
 const (
 	// ContextKey is the key middleware uses to store the Google Analytics session in the echo context
-	ContextKey        = "ga4m.session"
+	ContextKey = "ga4m.session"
+
+	// google analytics cookie names
 	clientCookieName  = "_ga"
 	sessionCookieName = "_ga_"
 )
@@ -41,12 +43,12 @@ type Session struct {
 func ParseSessionFromRequest(r *http.Request) Session {
 	var clientCookieValue, sessionCookieValue string
 
-	// Get _ga cookie.
+	// find _ga client cookie
 	if cookie, err := r.Cookie(clientCookieName); err == nil {
 		clientCookieValue = cookie.Value
 	}
 
-	// Get _ga_* session cookie.
+	// find _ga_* session cookie
 	for _, cookie := range r.Cookies() {
 		if strings.HasPrefix(cookie.Name, sessionCookieName) {
 			sessionCookieValue = cookie.Value
@@ -54,7 +56,7 @@ func ParseSessionFromRequest(r *http.Request) Session {
 		}
 	}
 
-	// Parse Google Analytics cookies.
+	// parse ga client and session cookies
 	return parseGoogleAnalyticsCookies(clientCookieValue, sessionCookieValue)
 }
 

@@ -11,16 +11,22 @@ import (
 const (
 	// DefaultEngagementTimeMS is the default engagement time in milliseconds
 	DefaultEngagementTimeMS = "100"
+
 	// SessionIDParam is the parameter name for the session ID
 	SessionIDParam = "session_id"
+
 	// EngagementTimeParam is the parameter name for the engagement time in milliseconds
 	EngagementTimeParam = "engagement_time_msec"
+
 	// MaxEventsPerRequest is the maximum number of events per request
 	MaxEventsPerRequest = 25
+
 	// URLFormat is the format for the URL
 	URLFormat = "%s?measurement_id=%s&api_secret=%s"
+
 	// ContentTypeHeader is the header for the content type
 	ContentTypeHeader = "Content-Type"
+
 	// ContentTypeJSON is the content type for JSON
 	ContentTypeJSON = "application/json"
 )

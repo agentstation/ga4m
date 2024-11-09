@@ -1,9 +1,6 @@
 package ga4m
 
-import (
-	"fmt"
-	"regexp"
-)
+import "fmt"
 
 const (
 	maxEventNameLength  = 40
@@ -16,12 +13,18 @@ func validateEventName(name string) error {
 	if len(name) > maxEventNameLength {
 		return fmt.Errorf("event name must be %d characters or fewer", maxEventNameLength)
 	}
-	matched, err := regexp.MatchString(`^[a-zA-Z][a-zA-Z0-9_]*$`, name)
-	if err != nil {
-		return fmt.Errorf("error validating event name: %w", err)
+	if len(name) == 0 {
+		return fmt.Errorf("event name cannot be empty")
 	}
-	if !matched {
-		return fmt.Errorf("event name must start with a letter and contain only alphanumeric characters and underscores")
+	// Check first character is a letter
+	if !isLetter(name[0]) {
+		return fmt.Errorf("event name must start with a letter")
+	}
+	// Check remaining characters
+	for i := 1; i < len(name); i++ {
+		if !isAlphanumericOrUnderscore(name[i]) {
+			return fmt.Errorf("event name must contain only alphanumeric characters and underscores")
+		}
 	}
 	return nil
 }
@@ -35,18 +38,32 @@ func validateParams(params map[string]string) error {
 		if len(name) > maxParamNameLength {
 			return fmt.Errorf("parameter name '%s' exceeds maximum length of %d", name, maxParamNameLength)
 		}
-		matched, err := regexp.MatchString(`^[a-zA-Z][a-zA-Z0-9_]*$`, name)
-		if err != nil {
-			return fmt.Errorf("error validating parameter name: %w", err)
+		if len(name) == 0 {
+			return fmt.Errorf("parameter name cannot be empty")
 		}
-		if !matched {
-			return fmt.Errorf("parameter name '%s' must start with a letter and contain only alphanumeric characters and underscores", name)
+		// Check first character is a letter
+		if !isLetter(name[0]) {
+			return fmt.Errorf("parameter name '%s' must start with a letter", name)
+		}
+		// Check remaining characters
+		for i := 1; i < len(name); i++ {
+			if !isAlphanumericOrUnderscore(name[i]) {
+				return fmt.Errorf("parameter name '%s' must contain only alphanumeric characters and underscores", name)
+			}
 		}
 
-		strValue := fmt.Sprintf("%v", value)
-		if len(strValue) > maxParamValueLength {
+		if len(value) > maxParamValueLength {
 			return fmt.Errorf("parameter value for '%s' exceeds maximum length of %d", name, maxParamValueLength)
 		}
 	}
 	return nil
+}
+
+// Helper functions
+func isLetter(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
+
+func isAlphanumericOrUnderscore(c byte) bool {
+	return isLetter(c) || (c >= '0' && c <= '9') || c == '_'
 }
