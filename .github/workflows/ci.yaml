@@ -1,0 +1,49 @@
+name: Test, Vet, and Coverage
+
+on:
+  push:
+    branches: [ "master" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  GITHUB_ORG: ${{ github.repository_owner }}
+
+jobs:
+  lint-vet-build-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.20']
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Run go mod download
+      run: make install
+
+    - name: Lint Go Code
+      uses: golangci/golangci-lint-action@v3
+      with:
+        version: latest
+
+    - name: Run go vet
+      run: make vet
+
+    - name: Run Tests
+      run: make test
+
+    # - name: Run Tests and Generate Coverage
+    #   run: make coverage
+
+    # - name: Upload coverage to Codecov
+    #   uses: codecov/codecov-action@v4
+    #   with:
+    #     token: ${{ secrets.CODECOV_TOKEN }}
